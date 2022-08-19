@@ -30,6 +30,7 @@ func init() {
 
 	if flags.config == "" {
 		flag.Usage()
+		os.Exit(1)
 	}
 }
 
