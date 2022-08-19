@@ -88,12 +88,12 @@ func (t Tunnel) Bridge(conn *ssh.Client) error {
 			defer c.Close()
 			rc, err := conn.Dial("tcp", t.Remote.String())
 			if err != nil {
-				logf("failed to connect to remote %s via server %s: %v", t.Remote, conn.LocalAddr(), err)
+				logf("failed to connect to remote %s via server %s: %v", t.Remote, conn.RemoteAddr(), err)
 				return
 			}
 			defer rc.Close()
 
-			logf("tunneling %s <-> %s <-> %s", c.RemoteAddr(), conn.LocalAddr(), t.Remote)
+			logf("tunneling %s <-> %s <-> %s", c.LocalAddr(), conn.RemoteAddr(), t.Remote.String())
 			if err = relay(rc, c); err != nil {
 				logf("relay error: %v", err)
 			}
