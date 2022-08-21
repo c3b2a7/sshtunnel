@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/c3b2a7/sshtunnel/constant"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -36,19 +35,19 @@ func init() {
 
 func main() {
 	if err := initConfig(flags.config); err != nil {
-		log.Fatalln(err)
+		logger.Fatalln(err)
 	}
 
 	client, err := Connect(app.Config)
 	if err != nil {
-		log.Fatalln(err)
+		logger.Fatalln(err)
 	}
 	for _, tunnel := range app.Config.Tunnels {
 		t := tunnel
 		go func() {
 			err := t.Bridge(client)
 			if err != nil {
-				logf("failed to start tunnel: %v", err)
+				logger.Printf("failed to start tunnel: %v", err)
 			}
 		}()
 	}
@@ -79,15 +78,24 @@ func initConfig(config string) error {
 		return err
 	}
 
-	app.Config.Target, _ = NewEndpoint(c.Target)
+	app.Config.Target, err = NewEndpoint(c.Target)
+	if err != nil {
+		return err
+	}
 	app.Config.Username = c.Username
 	app.Config.Passphrase = c.Passphrase
 	if c.PrivateKey != "" {
-		app.Config.PrivateKey = readPrivateKey(c.PrivateKey)
+		app.Config.PrivateKey, err = ioutil.ReadFile(c.PrivateKey)
+		if err != nil {
+			return err
+		}
 	}
 	var tunnels []Tunnel
 	for _, tunnel := range c.Tunnels {
 		l, err := NewEndpoint(tunnel.Local)
+		if err != nil {
+			return err
+		}
 		r, err := NewEndpoint(tunnel.Remote)
 		if err != nil {
 			return err
@@ -100,13 +108,4 @@ func initConfig(config string) error {
 	app.Config.Tunnels = tunnels
 
 	return nil
-}
-
-func readPrivateKey(file string) (bytes []byte) {
-	bytes, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatalln(err)
-		return
-	}
-	return
 }

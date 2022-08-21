@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"golang.org/x/crypto/ssh"
 	"io"
-	"log"
 	"net"
 	"os"
 	"sync"
@@ -40,13 +39,10 @@ type Config struct {
 
 func NewEndpoint(addr string) (Endpoint, error) {
 	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		log.Fatalln(err)
-	}
 	return Endpoint{
 		Host: host,
 		Port: port,
-	}, nil
+	}, err
 }
 
 func Connect(config Config) (*ssh.Client, error) {
@@ -80,7 +76,7 @@ func (t Tunnel) Bridge(conn *ssh.Client) error {
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			logf("failed to accept: %s", err)
+			logger.Printf("failed to accept: %s", err)
 			continue
 		}
 
@@ -88,14 +84,14 @@ func (t Tunnel) Bridge(conn *ssh.Client) error {
 			defer c.Close()
 			rc, err := conn.Dial("tcp", t.Remote.String())
 			if err != nil {
-				logf("failed to connect to remote %s via server %s: %v", t.Remote, conn.RemoteAddr(), err)
+				logger.Printf("failed to connect to remote %s via server %s: %v", t.Remote, conn.RemoteAddr(), err)
 				return
 			}
 			defer rc.Close()
 
-			logf("tunneling %s <-> %s <-> %s", c.LocalAddr(), conn.RemoteAddr(), t.Remote.String())
+			logger.Printf("tunneling %s <-> %s <-> %s", c.LocalAddr(), conn.RemoteAddr(), t.Remote.String())
 			if err = relay(rc, c); err != nil {
-				logf("relay error: %v", err)
+				logger.Printf("relay error: %v", err)
 			}
 		}()
 	}
