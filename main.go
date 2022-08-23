@@ -11,6 +11,12 @@ import (
 	"syscall"
 )
 
+var app struct {
+	Verbose bool
+	Config  Config
+	Tunnels []Tunnel
+}
+
 var flags struct {
 	config  string
 	version bool
@@ -42,7 +48,7 @@ func main() {
 	if err != nil {
 		logger.Fatalln(err)
 	}
-	for _, tunnel := range app.Config.Tunnels {
+	for _, tunnel := range app.Tunnels {
 		t := tunnel
 		go func() {
 			err := t.Bridge(client)
@@ -67,10 +73,11 @@ func initConfig(config string) error {
 		Tunnels []struct {
 			Remote string `json:"remote"`
 			Local  string `json:"local"`
+			Mode   string `json:"mode"`
 		} `json:"tunnels,omitempty"`
 		Target     string `json:"target"`
 		Username   string `json:"username"`
-		PrivateKey string `json:"ssh-key"`
+		PrivateKey string `json:"private-key"`
 		Passphrase string `json:"passphrase"`
 	}
 	err = json.Unmarshal(data, &c)
@@ -92,20 +99,29 @@ func initConfig(config string) error {
 	}
 	var tunnels []Tunnel
 	for _, tunnel := range c.Tunnels {
-		l, err := NewEndpoint(tunnel.Local)
+		var local, remote Endpoint
+		local, err = NewEndpoint(tunnel.Local)
 		if err != nil {
 			return err
 		}
-		r, err := NewEndpoint(tunnel.Remote)
+		if tunnel.Remote != "" {
+			remote, err = NewEndpoint(tunnel.Remote)
+			if err != nil {
+				return err
+			}
+		}
+		var mode Mode
+		mode, err = PickMode(tunnel.Mode)
 		if err != nil {
 			return err
 		}
 		tunnels = append(tunnels, Tunnel{
-			Local:  l,
-			Remote: r,
+			Local:  local,
+			Remote: remote,
+			Mode:   mode,
 		})
 	}
-	app.Config.Tunnels = tunnels
+	app.Tunnels = tunnels
 
 	return nil
 }
