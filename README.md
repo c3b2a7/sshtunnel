@@ -1,5 +1,10 @@
 # SSH Tunnel
 
+[![GitHub](https://img.shields.io/github/license/c3b2a7/ssh-tunnel)](https://github.com/c3b2a7/ssh-tunnel/blob/master/LICENSE)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/c3b2a7/ssh-tunnel/Build%20and%20test)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/c3b2a7/ssh-tunnel)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/c3b2a7/ssh-tunnel)
+
 > A tunneling tool based on ssh protocol can be used for port forwarding. No dependency and out of the box.
 
 ## Features
