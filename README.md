@@ -1,7 +1,7 @@
 # SSH Tunnel
 
 [![GitHub](https://img.shields.io/github/license/c3b2a7/ssh-tunnel)](https://github.com/c3b2a7/ssh-tunnel/blob/master/LICENSE)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/c3b2a7/ssh-tunnel/Build%20and%20test)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/c3b2a7/ssh-tunnel/build.yml)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/c3b2a7/ssh-tunnel)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/c3b2a7/ssh-tunnel)
 
