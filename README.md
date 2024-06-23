@@ -1,9 +1,9 @@
 # SSH Tunnel
 
-[![GitHub](https://img.shields.io/github/license/c3b2a7/ssh-tunnel)](https://github.com/c3b2a7/ssh-tunnel/blob/master/LICENSE)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/c3b2a7/ssh-tunnel/build.yml)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/c3b2a7/ssh-tunnel)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/c3b2a7/ssh-tunnel)
+[![GitHub](https://img.shields.io/github/license/c3b2a7/sshtunnel)](https://github.com/c3b2a7/sshtunnel/blob/master/LICENSE)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/c3b2a7/sshtunnel/build.yml)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/c3b2a7/sshtunnel)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/c3b2a7/sshtunnel)
 
 > A tunneling tool based on ssh protocol can be used for port forwarding. No dependency and out of the box.
 
@@ -12,11 +12,36 @@
 - support `local`,`remote`,`dynamic` ssh port forwarding
 - support `ssh-key`,`password` authentication method
 
+## Installation
+
+### Using curl/sh:
+
+```shell
+curl https://get.extism.org/cli | sh
+```
+
+See the help output for more options:
+
+```shell
+curl https://get.extism.org/cli | sh -s -- -h
+```
+
+### From source:
+
+```shell
+go install github.com/c3b2a7/sshtunnel@latest
+```
+
+### Manual
+
+You can also download and extract the latest release from
+[https://github.com/c3b2a7/sshtunnel/releases](https://github.com/c3b2a7/sshtunnel/releases)
+
 ## Usage
 
 ```shell
-./sshtunnel-macos-arm64
-Usage of ./sshtunnel-macos-arm64:
+./sshtunnel
+Usage of ./sshtunnel:
   -config string
     	config file
   -v	show version information
