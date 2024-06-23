@@ -2,4 +2,6 @@ module github.com/c3b2a7/sshtunnel
 
 go 1.22
 
-require golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
+require golang.org/x/crypto v0.24.0
+
+require golang.org/x/sys v0.21.0 // indirect
