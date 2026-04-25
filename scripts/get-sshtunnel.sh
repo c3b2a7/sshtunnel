@@ -147,6 +147,12 @@ if [ "$use_go" = "y" ]; then
   version="latest"
   go_bin=$(go env GOBIN)
   if [ "$go_bin" = "" ]; then
+    go_path=$(go env GOPATH)
+    if [ "$go_path" != "" ]; then
+      go_bin="$go_path/bin"
+    fi
+  fi
+  if [ "$go_bin" = "" ]; then
     go_bin="$HOME/go/bin"
   fi
 fi
