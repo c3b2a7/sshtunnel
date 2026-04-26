@@ -5,106 +5,170 @@
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/c3b2a7/sshtunnel)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/c3b2a7/sshtunnel)
 
-> A tunneling tool based on ssh protocol can be used for port forwarding. No dependency and out of the box.
+`sshtunnel` is a small SSH tunneling CLI for local forwarding, remote
+forwarding, and dynamic SOCKS5 forwarding. It starts one SSH connection and
+runs one or more tunnels from a JSON config file.
 
 ## Features
 
-- support `local`,`remote`,`dynamic` ssh port forwarding
-- support `ssh-key`,`password` authentication method
+- Local, remote, and dynamic SSH forwarding.
+- Multiple tunnels over one SSH connection.
+- Private key, encrypted private key, and password authentication.
+- JSON configuration for repeatable tunnel setups.
 
 ## Installation
 
-### Using curl/sh:
+Install with the release script:
 
 ```shell
 curl https://raw.githubusercontent.com/c3b2a7/sshtunnel/master/scripts/get-sshtunnel.sh | sh
 ```
 
-See the help output for more options:
+Show installer options:
 
 ```shell
 curl https://raw.githubusercontent.com/c3b2a7/sshtunnel/master/scripts/get-sshtunnel.sh | sh -s -- -h
 ```
 
-### From source:
+Install from source:
 
 ```shell
 go install github.com/c3b2a7/sshtunnel@latest
 ```
 
-### Manual
-
-You can also download and extract the latest release from
-[https://github.com/c3b2a7/sshtunnel/releases](https://github.com/c3b2a7/sshtunnel/releases)
-
-## Usage
-
-```shell
-./sshtunnel
-Usage of ./sshtunnel:
-  -config string
-    	config file
-  -v	show version information
-  -verbose
-    	verbose mode
-```
+Prebuilt archives are available on the
+[releases page](https://github.com/c3b2a7/sshtunnel/releases).
 
 ## Quick Start
 
-At first, you need write a configuration like this:
+Create a config file:
 
 ```json
 {
-  "target": "host:port",
-  "username": "username",
-  "private-key": "location of ssh private key",
-  "passphrase": "private-key passphrase or password of username",
+  "target": "ssh.example.com:22",
+  "username": "alice",
+  "private-key": "/home/alice/.ssh/id_ed25519",
+  "passphrase": "private key passphrase or account password",
   "tunnels": [
     {
+      "mode": "local",
       "local": "127.0.0.1:13306",
-      "remote": "172.16.0.14:3306",
-      "mode": "local"
+      "remote": "172.16.0.14:3306"
     },
     {
+      "mode": "remote",
       "local": "127.0.0.1:8080",
-      "remote": "0.0.0.0:18080",
-      "mode": "remote"
+      "remote": "0.0.0.0:18080"
     },
     {
-      "local": "127.0.0.1:1080",
-      "mode": "dynamic"
+      "mode": "dynamic",
+      "local": "127.0.0.1:1080"
     }
   ]
 }
 ```
 
-and then, use the following command to start ssh tunnel:
+Start the tunnels:
 
 ```shell
-./sshtunnel -config /path/to/config -verbose
+sshtunnel -config /path/to/config.json
 ```
 
-after the tunnel is established:
-
-connect to the remote MySQL service like connecting to the local：
+Enable debug logs when needed:
 
 ```shell
-mysql -h 127.0.0.1 -P 13306 -u root -p # in local
+sshtunnel -config /path/to/config.json -verbose
 ```
 
-connect to local service in remote:
+After the sample config is running:
 
 ```shell
-nc -l 8080 # in local
-nc localhost 18080 # in remote
+# local forwarding: connect to remote MySQL through localhost
+mysql -h 127.0.0.1 -P 13306 -u root -p
+
+# remote forwarding: connect from the SSH server side to your local service
+nc -l 8080
+nc localhost 18080
+
+# dynamic forwarding: use the local SOCKS5 proxy
+curl -x socks5://127.0.0.1:1080 ip.sb
 ```
 
-connect to dynamic addr using socks5 protocol via remote server:
+## Usage
 
-```shell
-curl -x socks5://localhost:1080 ip.sb # in local
+```text
+Usage of sshtunnel:
+  -config string
+        config file
+  -v    show version information
+  -verbose
+        verbose mode
 ```
 
-# LICENSE
+## Configuration
+
+Top-level fields:
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `target` | Yes | SSH server address, in `host:port` format. |
+| `username` | Yes | SSH username. |
+| `private-key` | No | Path to an SSH private key. Leave empty for password auth. |
+| `passphrase` | No | Private key passphrase, or SSH password when `private-key` is empty. |
+| `tunnels` | Yes | List of tunnel definitions. |
+
+Tunnel fields:
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `mode` | Yes | One of `local`, `remote`, or `dynamic`. |
+| `local` | Yes | Local listen address for `local` and `dynamic`; local target service for `remote`. |
+| `remote` | For `local` and `remote` | Remote target service for `local`; SSH server listen address for `remote`. Ignored by `dynamic`. |
+
+## Forwarding Modes
+
+| Mode | Use case |
+| --- | --- |
+| `local` | Reach a remote service from your machine. |
+| `remote` | Expose a local service on the SSH server side. |
+| `dynamic` | Use the SSH server as a SOCKS5 proxy. |
+
+Traffic flow diagrams are hidden by default. Expand them when you need the
+connection path for a specific mode.
+
+<details>
+<summary>Show traffic flow diagrams</summary>
+
+### Local Forwarding
+
+```mermaid
+flowchart LR
+    app[Local client] --> local[sshtunnel listens on local<br/>127.0.0.1:13306]
+    local --> ssh[SSH server<br/>ssh.example.com:22]
+    ssh --> remote[Remote service<br/>172.16.0.14:3306]
+```
+
+### Remote Forwarding
+
+```mermaid
+flowchart LR
+    remoteClient[Client on SSH server side] --> remote[SSH server listens on remote<br/>0.0.0.0:18080]
+    remote --> ssh[SSH server<br/>ssh.example.com:22]
+    ssh --> local[Local service<br/>127.0.0.1:8080]
+```
+
+### Dynamic Forwarding
+
+```mermaid
+flowchart LR
+    app[SOCKS5 client] --> socks[sshtunnel listens on local as a SOCKS5 proxy<br/>127.0.0.1:1080]
+    socks --> request[SOCKS5 requested host:port]
+    request --> ssh[SSH server<br/>ssh.example.com:22]
+    ssh --> dst[Destination service<br/>requested host:port]
+```
+
+</details>
+
+## License
 
 MIT
