@@ -102,7 +102,7 @@ func ReadAddr(r io.Reader) (Addr, error) {
 	return readAddr(r, make([]byte, MaxAddrLen))
 }
 
-// SplitAddr slices a SOCKS address from beginning of b. Returns nil if failed.
+// SplitAddr slices a SOCKS address from the beginning of b. Returns nil if failed.
 func SplitAddr(b []byte) Addr {
 	addrLen := 1
 	if len(b) < addrLen {
@@ -167,7 +167,7 @@ func ParseAddr(s string) Addr {
 	return addr
 }
 
-// Handshake fast-tracks SOCKS initialization to get target address to connect.
+// Handshake fast-tracks SOCKS initialization to get the target address to connect.
 func Handshake(rw io.ReadWriter) (Addr, error) {
 	// Read RFC 1928 for request and reply structure and sizes.
 	buf := make([]byte, MaxAddrLen)

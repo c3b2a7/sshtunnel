@@ -1,4 +1,4 @@
-package constant
+package main
 
 var (
 	Version   = "unknown version"

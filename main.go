@@ -1,127 +1,81 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"flag"
 	"fmt"
-	"github.com/c3b2a7/sshtunnel/constant"
-	"io/ioutil"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/c3b2a7/sshtunnel/internal/log"
 )
 
-var app struct {
-	Verbose bool
-	Config  Config
-	Tunnels []Tunnel
-}
+var (
+	configPath  string
+	showVersion bool
+	verbose     bool
+)
 
-var flags struct {
-	config  string
-	version bool
-}
-
-func init() {
-	flag.BoolVar(&app.Verbose, "verbose", false, "verbose mode")
-	flag.StringVar(&flags.config, "config", "", "config file")
-	flag.BoolVar(&flags.version, "v", false, "show version information")
+func main() {
+	flag.StringVar(&configPath, "config", "", "config file")
+	flag.BoolVar(&showVersion, "v", false, "show version information")
+	flag.BoolVar(&verbose, "verbose", false, "verbose mode")
 	flag.Parse()
 
-	if flags.version {
-		fmt.Printf("%s, %s\n", constant.Version, constant.BuildTime)
-		os.Exit(0)
+	if showVersion {
+		fmt.Printf("%s, %s\n", Version, BuildTime)
+		return
 	}
 
-	if flags.config == "" {
-		flag.Usage()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	logger := log.NewLogger(os.Stderr, logLevelFromVerbosity(verbose))
+
+	if err := run(log.WithLogger(ctx, logger)); err != nil {
+		log.Errorf(ctx, "%s", err)
 		os.Exit(1)
 	}
 }
 
-func main() {
-	if err := initConfig(flags.config); err != nil {
-		logger.Fatalln(err)
+func run(ctx context.Context) error {
+	if configPath == "" {
+		flag.Usage()
+		return fmt.Errorf("config file is required")
 	}
 
-	client, err := Connect(app.Config)
-	if err != nil {
-		logger.Fatalln(err)
-	}
-	for _, tunnel := range app.Tunnels {
-		t := tunnel
-		go func() {
-			err := t.Bridge(client)
-			if err != nil {
-				logger.Printf("failed to start tunnel: %v", err)
-			}
-		}()
-	}
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	<-sigCh
-}
-
-func initConfig(config string) error {
-	data, err := ioutil.ReadFile(config)
+	config, err := LoadConfig(configPath)
 	if err != nil {
 		return err
 	}
 
-	var c struct {
-		Tunnels []struct {
-			Remote string `json:"remote"`
-			Local  string `json:"local"`
-			Mode   string `json:"mode"`
-		} `json:"tunnels,omitempty"`
-		Target     string `json:"target"`
-		Username   string `json:"username"`
-		PrivateKey string `json:"private-key"`
-		Passphrase string `json:"passphrase"`
-	}
-	err = json.Unmarshal(data, &c)
+	client, err := DialSSH(config.SSH)
 	if err != nil {
 		return err
+	}
+	defer client.Close()
+
+	for i, tunnel := range config.Tunnels {
+		tunnelID := fmt.Sprintf("tunnel-%d", i+1)
+		tunnelCtx := log.WithTunnelLogger(ctx, tunnelID)
+
+		log.Infof(tunnelCtx, "starting %s: mode=%s localAddr=%s remoteAddr=%s", tunnelID, tunnel.Mode, tunnel.Local, tunnel.Remote)
+		if err = ServeTunnel(tunnelCtx, client, tunnel); err != nil {
+			return fmt.Errorf("failed to start %s: %v", tunnelID, err)
+		}
+		log.Infof(tunnelCtx, "started %s", tunnelID)
 	}
 
-	app.Config.Target, err = NewEndpoint(c.Target)
-	if err != nil {
-		return err
-	}
-	app.Config.Username = c.Username
-	app.Config.Passphrase = c.Passphrase
-	if c.PrivateKey != "" {
-		app.Config.PrivateKey, err = ioutil.ReadFile(c.PrivateKey)
-		if err != nil {
-			return err
-		}
-	}
-	var tunnels []Tunnel
-	for _, tunnel := range c.Tunnels {
-		var local, remote Endpoint
-		local, err = NewEndpoint(tunnel.Local)
-		if err != nil {
-			return err
-		}
-		if tunnel.Remote != "" {
-			remote, err = NewEndpoint(tunnel.Remote)
-			if err != nil {
-				return err
-			}
-		}
-		var mode Mode
-		mode, err = PickMode(tunnel.Mode)
-		if err != nil {
-			return err
-		}
-		tunnels = append(tunnels, Tunnel{
-			Local:  local,
-			Remote: remote,
-			Mode:   mode,
-		})
-	}
-	app.Tunnels = tunnels
+	<-ctx.Done()
+	log.Infof(ctx, "exiting")
 
 	return nil
+}
+
+func logLevelFromVerbosity(verbose bool) slog.Level {
+	if verbose {
+		return slog.LevelDebug
+	}
+	return slog.LevelInfo
 }
