@@ -263,6 +263,12 @@ func waitUDPAssociate(ctx context.Context, conn net.Conn) {
 	}
 }
 
+var relayBufferPool = sync.Pool{
+	New: func() any {
+		return new(make([]byte, 32*1024))
+	},
+}
+
 // relay copies data in both directions until either side closes or timeout.
 func relay(ctx context.Context, left, right net.Conn) error {
 	var firstErr, secondErr error
@@ -283,11 +289,11 @@ func relay(ctx context.Context, left, right net.Conn) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_, secondErr = io.Copy(right, left)
+		secondErr = copyBuffer(right, left)
 		_ = right.SetReadDeadline(time.Now().Add(wait))
 	}()
 
-	_, firstErr = io.Copy(left, right)
+	firstErr = copyBuffer(left, right)
 	_ = left.SetReadDeadline(time.Now().Add(wait))
 	wg.Wait()
 
@@ -301,4 +307,11 @@ func relay(ctx context.Context, left, right net.Conn) error {
 		return firstErr
 	}
 	return nil
+}
+
+func copyBuffer(dst, src net.Conn) error {
+	buf := relayBufferPool.Get().(*[]byte)
+	defer relayBufferPool.Put(buf)
+	_, err := io.CopyBuffer(dst, src, *buf)
+	return err
 }
