@@ -28,15 +28,23 @@ func WithTunnelLogger(ctx context.Context, tunnelID string) context.Context {
 }
 
 func Infof(ctx context.Context, format string, args ...any) {
-	FromContext(ctx).Log(ctx, slog.LevelInfo, fmt.Sprintf(format, args...))
+	logf(ctx, slog.LevelInfo, format, args...)
 }
 
 func Debugf(ctx context.Context, format string, args ...any) {
-	FromContext(ctx).Log(ctx, slog.LevelDebug, fmt.Sprintf(format, args...))
+	logf(ctx, slog.LevelDebug, format, args...)
 }
 
 func Errorf(ctx context.Context, format string, args ...any) {
-	FromContext(ctx).Log(ctx, slog.LevelError, fmt.Sprintf(format, args...))
+	logf(ctx, slog.LevelError, format, args...)
+}
+
+func logf(ctx context.Context, level slog.Level, format string, args ...any) {
+	logger := FromContext(ctx)
+	if !logger.Enabled(ctx, level) {
+		return
+	}
+	logger.Log(ctx, level, fmt.Sprintf(format, args...))
 }
 
 type formatLogHandler struct {
