@@ -58,47 +58,49 @@ func TestParseForwardMode(t *testing.T) {
 	}
 }
 
-func TestServeTunnelClosesLocalListenerOnCancel(t *testing.T) {
-	addr := freeTCPAddress(t)
+func TestRelayCopiesBothDirections(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
+	leftA, leftB := net.Pipe()
+	rightA, rightB := net.Pipe()
+	defer leftA.Close()
+	defer leftB.Close()
+	defer rightA.Close()
+	defer rightB.Close()
 
-	err := ServeTunnel(ctx, nil, TunnelSpec{
-		Local: addr,
-		Mode:  ForwardLocal,
-	})
-	if err != nil {
-		t.Fatalf("ServeTunnel() error = %v", err)
+	done := make(chan error, 1)
+	go func() {
+		done <- relay(ctx, leftA, rightA)
+	}()
+
+	if _, err := leftB.Write([]byte("from-left")); err != nil {
+		t.Fatalf("write left side: %v", err)
+	}
+	buf := make([]byte, len("from-left"))
+	if _, err := rightB.Read(buf); err != nil {
+		t.Fatalf("read right side: %v", err)
+	}
+	if string(buf) != "from-left" {
+		t.Fatalf("relay left->right = %q, want %q", string(buf), "from-left")
+	}
+
+	if _, err := rightB.Write([]byte("from-right")); err != nil {
+		t.Fatalf("write right side: %v", err)
+	}
+	buf = make([]byte, len("from-right"))
+	if _, err := leftB.Read(buf); err != nil {
+		t.Fatalf("read left side: %v", err)
+	}
+	if string(buf) != "from-right" {
+		t.Fatalf("relay right->left = %q, want %q", string(buf), "from-right")
 	}
 
 	cancel()
-
-	deadline := time.Now().Add(time.Second)
-	for {
-		listener, err := net.Listen("tcp", addr.String())
-		if err == nil {
-			_ = listener.Close()
-			return
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("relay() error = %v", err)
 		}
-
-		if time.Now().After(deadline) {
-			t.Fatalf("listener was not closed after context cancellation: %v", err)
-		}
-		time.Sleep(10 * time.Millisecond)
+	case <-time.After(time.Second):
+		t.Fatal("relay() did not stop after context cancellation")
 	}
-}
-
-func freeTCPAddress(t *testing.T) NetworkAddress {
-	t.Helper()
-
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen on free port: %v", err)
-	}
-	defer listener.Close()
-
-	addr, err := ParseNetworkAddress(listener.Addr().String())
-	if err != nil {
-		t.Fatalf("parse listener address: %v", err)
-	}
-	return addr
 }
