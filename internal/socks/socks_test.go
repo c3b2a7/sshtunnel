@@ -36,6 +36,25 @@ func TestParseAddrStringRoundTrip(t *testing.T) {
 	}
 }
 
+func TestErrorString(t *testing.T) {
+	tests := []struct {
+		err  Error
+		want string
+	}{
+		{err: ErrAddressNotSupported, want: "address type not supported (8)"},
+		{err: ErrCommandNotSupported, want: "command not supported (7)"},
+		{err: Error(99), want: "error: 99"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			if got := tt.err.Error(); got != tt.want {
+				t.Fatalf("Error() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseAddrRejectsInvalidInput(t *testing.T) {
 	tests := []string{
 		"example.com",

@@ -28,7 +28,35 @@ const (
 type Error byte
 
 func (err Error) Error() string {
-	return "SOCKS error: " + strconv.Itoa(int(err))
+	if name := err.String(); name != "" {
+		return name + " (" + strconv.Itoa(int(err)) + ")"
+	}
+	return "error: " + strconv.Itoa(int(err))
+}
+
+func (err Error) String() string {
+	switch err {
+	case ErrGeneralFailure:
+		return "general failure"
+	case ErrConnectionNotAllowed:
+		return "connection not allowed"
+	case ErrNetworkUnreachable:
+		return "network unreachable"
+	case ErrHostUnreachable:
+		return "host unreachable"
+	case ErrConnectionRefused:
+		return "connection refused"
+	case ErrTTLExpired:
+		return "TTL expired"
+	case ErrCommandNotSupported:
+		return "command not supported"
+	case ErrAddressNotSupported:
+		return "address type not supported"
+	case InfoUDPAssociate:
+		return "UDP associate"
+	default:
+		return ""
+	}
 }
 
 // SOCKS errors as defined in RFC 1928 section 6.
