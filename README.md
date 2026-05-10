@@ -13,7 +13,7 @@ runs one or more tunnels from a JSON config file.
 
 - Local, remote, and dynamic SSH forwarding.
 - Multiple tunnels over one SSH connection.
-- Private key, encrypted private key, and password authentication.
+- Private key, SSH agent socket, and password authentication.
 - JSON configuration for repeatable tunnel setups.
 
 ## Installation
@@ -48,7 +48,7 @@ Create a config file:
   "target": "ssh.example.com:22",
   "username": "alice",
   "private-key": "/home/alice/.ssh/id_ed25519",
-  "passphrase": "private key passphrase or account password",
+  "passphrase": "private key passphrase",
   "tunnels": [
     {
       "mode": "local",
@@ -107,31 +107,42 @@ Usage of sshtunnel:
 
 ## Configuration
 
-Top-level fields:
+**Top-level fields:**
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `target` | Yes | SSH server address, in `host:port` format. |
-| `username` | Yes | SSH username. |
-| `private-key` | No | Path to an SSH private key. Leave empty for password auth. |
-| `passphrase` | No | Private key passphrase, or SSH password when `private-key` is empty. |
-| `tunnels` | Yes | List of tunnel definitions. |
+| Field           | Required | Description                                                                                                                                                         |
+|-----------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `target`        | Yes      | SSH server address, in `host:port` format.                                                                                                                          |
+| `username`      | Yes      | SSH username.                                                                                                                                                       |
+| `private-key`   | No       | Path to an SSH private key. When set, it is tried first as a public key authentication source.                                                                      |
+| `ssh_auth_sock` | No       | Unix socket path for SSH agent authentication. Agent identities are tried after `private-key`; if unset, the fallback is `SSH_AUTH_SOCK` read from the environment. |
+| `passphrase`    | No       | Private key passphrase when `private-key` is set; otherwise the SSH password, tried after public key authentication.                                                |
+| `tunnels`       | Yes      | List of tunnel definitions.                                                                                                                                         |
 
-Tunnel fields:
+**Tunnel definitions:**
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `mode` | Yes | One of `local`, `remote`, or `dynamic`. |
-| `local` | Yes | Local listen address for `local` and `dynamic`; local target service for `remote`. |
+| Field    | Required                 | Description                                                                                      |
+|----------|--------------------------|--------------------------------------------------------------------------------------------------|
+| `mode`   | Yes                      | One of `local`, `remote`, or `dynamic`.                                                          |
+| `local`  | Yes                      | Local listen address for `local` and `dynamic`; local target service for `remote`.               |
 | `remote` | For `local` and `remote` | Remote target service for `local`; SSH server listen address for `remote`. Ignored by `dynamic`. |
+
+## Authentication order:
+
+`private-key` public key auth -> `ssh_auth_sock` agent auth -> `SSH_AUTH_SOCK` (from environment variable) agent auth ->
+`passphrase` password auth
+
+`passphrase` has two meanings:
+
+- When `private-key` is set, `passphrase` is the private key passphrase.
+- When `private-key` is not set, `passphrase` is used as the SSH password after public key authentication.
 
 ## Forwarding Modes
 
-| Mode | Use case |
-| --- | --- |
-| `local` | Reach a remote service from your machine. |
-| `remote` | Expose a local service on the SSH server side. |
-| `dynamic` | Use the SSH server as a SOCKS5 proxy. |
+| Mode      | Use case                                       |
+|-----------|------------------------------------------------|
+| `local`   | Reach a remote service from your machine.      |
+| `remote`  | Expose a local service on the SSH server side. |
+| `dynamic` | Use the SSH server as a SOCKS5 proxy.          |
 
 Traffic flow diagrams are hidden by default. Expand them when you need the
 connection path for a specific mode.
