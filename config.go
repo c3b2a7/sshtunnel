@@ -15,11 +15,12 @@ type AppConfig struct {
 var ErrNoTunnels = errors.New("at least one tunnel is required")
 
 type fileConfig struct {
-	Target     string         `json:"target"`
-	Username   string         `json:"username"`
-	PrivateKey string         `json:"private-key"`
-	Passphrase string         `json:"passphrase"`
-	Tunnels    []tunnelConfig `json:"tunnels,omitempty"`
+	Target      string         `json:"target"`
+	Username    string         `json:"username"`
+	PrivateKey  string         `json:"private-key"`
+	Passphrase  string         `json:"passphrase"`
+	SSHAuthSock string         `json:"ssh_auth_sock"`
+	Tunnels     []tunnelConfig `json:"tunnels,omitempty"`
 }
 
 type tunnelConfig struct {
@@ -50,9 +51,10 @@ func (c fileConfig) toAppConfig() (AppConfig, error) {
 
 	config := AppConfig{
 		SSH: SSHConfig{
-			Server:     server,
-			Username:   c.Username,
-			Passphrase: c.Passphrase,
+			Server:      server,
+			Username:    c.Username,
+			Passphrase:  c.Passphrase,
+			SSHAuthSock: c.SSHAuthSock,
 		},
 	}
 

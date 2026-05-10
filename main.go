@@ -50,7 +50,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	client, err := DialSSH(config.SSH)
+	client, err := DialSSH(ctx, config.SSH)
 	if err != nil {
 		return err
 	}
@@ -59,13 +59,12 @@ func run(ctx context.Context) error {
 	for i, tunnel := range config.Tunnels {
 		tunnelID := fmt.Sprintf("tunnel-%d", i+1)
 		tunnelCtx := log.WithTunnelLogger(ctx, tunnelID)
-
-		log.Infof(tunnelCtx, "starting %s: mode=%s localAddr=%s remoteAddr=%s", tunnelID, tunnel.Mode, tunnel.Local, tunnel.Remote)
+		log.Infof(tunnelCtx, "starting: mode=%s local=%s remote=%s", tunnel.Mode, tunnel.Local, tunnel.Remote)
 		if err = ServeTunnel(tunnelCtx, client, tunnel); err != nil {
 			return fmt.Errorf("failed to start %s: %v", tunnelID, err)
 		}
-		log.Infof(tunnelCtx, "started %s", tunnelID)
 	}
+	log.Infof(ctx, "all tunnel started")
 
 	<-ctx.Done()
 	log.Infof(ctx, "exiting")

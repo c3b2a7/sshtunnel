@@ -59,7 +59,7 @@ func TestParseForwardMode(t *testing.T) {
 }
 
 func TestRelayCopiesBothDirections(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	leftA, leftB := net.Pipe()
 	rightA, rightB := net.Pipe()
 	defer leftA.Close()

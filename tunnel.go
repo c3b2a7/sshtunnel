@@ -70,48 +70,6 @@ type TunnelSpec struct {
 	Mode   ForwardMode
 }
 
-type SSHConfig struct {
-	Server     NetworkAddress
-	Username   string
-	PrivateKey []byte
-	Passphrase string
-}
-
-func DialSSH(config SSHConfig) (*ssh.Client, error) {
-	auth, err := buildAuthMethods(config)
-	if err != nil {
-		return nil, err
-	}
-
-	return ssh.Dial("tcp", config.Server.String(), &ssh.ClientConfig{
-		User:            config.Username,
-		Auth:            auth,
-		Timeout:         10 * time.Second,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	})
-}
-
-func buildAuthMethods(config SSHConfig) ([]ssh.AuthMethod, error) {
-	switch {
-	case len(config.PrivateKey) > 0 && config.Passphrase != "":
-		signer, err := ssh.ParsePrivateKeyWithPassphrase(config.PrivateKey, []byte(config.Passphrase))
-		if err != nil {
-			return nil, fmt.Errorf("parse encrypted private key: %w", err)
-		}
-		return []ssh.AuthMethod{ssh.PublicKeys(signer)}, nil
-	case len(config.PrivateKey) > 0:
-		signer, err := ssh.ParsePrivateKey(config.PrivateKey)
-		if err != nil {
-			return nil, fmt.Errorf("parse private key: %w", err)
-		}
-		return []ssh.AuthMethod{ssh.PublicKeys(signer)}, nil
-	case config.Passphrase != "":
-		return []ssh.AuthMethod{ssh.Password(config.Passphrase)}, nil
-	default:
-		return nil, nil
-	}
-}
-
 // ServeTunnel accepts tunnel connections and relays each connection in its own goroutine.
 func ServeTunnel(ctx context.Context, client *ssh.Client, tunnel TunnelSpec) error {
 	listener, err := listenTunnel(client, tunnel)
