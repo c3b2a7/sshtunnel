@@ -177,20 +177,24 @@ func handleTunnelConn(ctx context.Context, client *ssh.Client, tunnel TunnelSpec
 		if errors.Is(err, ErrSkipRelay) {
 			return
 		}
-		log.Errorf(ctx, "failed to connect to %s via server %s: %v", targetAddr, client.RemoteAddr(), err)
+		if targetAddr == "" {
+			log.Errorf(ctx, "failed to connect target: %v", err)
+		} else {
+			log.Errorf(ctx, "failed to connect target %s: %v", targetAddr, err)
+		}
 		return
 	}
 	if targetConn == nil {
-		log.Errorf(ctx, "failed to connect to %s via server %s: empty connection", targetAddr, client.RemoteAddr())
+		log.Errorf(ctx, "failed to connect target %s: empty target connection", targetAddr)
 		return
 	}
 	defer targetConn.Close()
 
 	log.Debugf(
-		ctx, "tunneling(%s) %s -> %s <-> %s -> %s",
+		ctx, "tunneling(%s) client %s -> client target %s <-> ssh server %s -> target %s",
 		tunnel.Mode,
-		client.LocalAddr(), client.RemoteAddr(),
-		targetConn.LocalAddr(), targetConn.RemoteAddr(),
+		clientConn.RemoteAddr(), clientConn.LocalAddr(),
+		client.RemoteAddr(), targetAddr,
 	)
 	if err = relay(ctx, targetConn, clientConn); err != nil {
 		log.Errorf(ctx, "relay error: %v", err)
@@ -230,7 +234,7 @@ func openDynamicTarget(ctx context.Context, client *ssh.Client, tunnel TunnelSpe
 		return nil, "", ErrSkipRelay
 	}
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("socks handshake: %w", err)
 	}
 
 	conn, err := client.DialContext(ctx, "tcp", targetAddr.String())
