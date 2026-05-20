@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.4.0](https://github.com/c3b2a7/sshtunnel/compare/v1.3.0..v1.4.0) - 2026-05-10
+## [1.4.0](https://github.com/c3b2a7/sshtunnel/compare/v1.3.0..v1.4.0) - 2026-05-20
 
 ### 🚀 Features
 
@@ -16,6 +16,10 @@ All notable changes to this project will be documented in this file.
 
 - Reduce relay allocations with buffer pooling ([#17](https://github.com/c3b2a7/sshtunnel/pull/17)) - ([a4bdbf7](https://github.com/c3b2a7/sshtunnel/commit/a4bdbf7691b4ea45051dd643d4836acf57abd716))
 - Avoid formatting disabled logs ([#16](https://github.com/c3b2a7/sshtunnel/pull/16)) - ([2b44349](https://github.com/c3b2a7/sshtunnel/commit/2b443492093904699944e023fe41b6f968c08437))
+
+### ⚙️ Miscellaneous Tasks
+
+- Streamline release workflow and scripts ([#21](https://github.com/c3b2a7/sshtunnel/pull/21)) - ([784d4ad](https://github.com/c3b2a7/sshtunnel/commit/784d4ada6a16606d493488b204c72b583016eac5))
 
 
 ## [1.3.0](https://github.com/c3b2a7/sshtunnel/compare/v1.1.0..v1.3.0) - 2026-04-26
