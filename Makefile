@@ -7,57 +7,62 @@ GOBUILD=CGO_ENABLED=0 go build -trimpath -ldflags ' \
 		-X "main.BuildTime=$(BUILDTIME)" \
 		-w -s -buildid='
 
-all: linux-amd64 linux-arm64 freebsd-amd64 freebsd-arm64 darwin-amd64 darwin-arm64 win64 win32
+all: linux-amd64 linux-arm64 freebsd-amd64 freebsd-arm64 darwin-amd64 darwin-arm64 windows-amd64 windows-386
 
-linux-amd64:
+$(BINDIR):
+	mkdir -p $(BINDIR)
+
+linux-amd64: $(BINDIR)
 	GOARCH=amd64 GOOS=linux $(GOBUILD) -o $(BINDIR)/$(NAME)-$@
 
-linux-arm64:
+linux-arm64: $(BINDIR)
 	GOARCH=arm64 GOOS=linux $(GOBUILD) -o $(BINDIR)/$(NAME)-$@
 
-freebsd-amd64:
+freebsd-amd64: $(BINDIR)
 	GOARCH=amd64 GOOS=freebsd $(GOBUILD) -o $(BINDIR)/$(NAME)-$@
 
-freebsd-arm64:
+freebsd-arm64: $(BINDIR)
 	GOARCH=arm64 GOOS=freebsd $(GOBUILD) -o $(BINDIR)/$(NAME)-$@
 
-darwin-amd64:
+darwin-amd64: $(BINDIR)
 	GOARCH=amd64 GOOS=darwin $(GOBUILD) -o $(BINDIR)/$(NAME)-$@
 
-darwin-arm64:
+darwin-arm64: $(BINDIR)
 	GOARCH=arm64 GOOS=darwin $(GOBUILD) -o $(BINDIR)/$(NAME)-$@
 
-win64:
+windows-amd64: $(BINDIR)
 	GOARCH=amd64 GOOS=windows $(GOBUILD) -o $(BINDIR)/$(NAME)-$@.exe
 
-win32:
+windows-386: $(BINDIR)
 	GOARCH=386 GOOS=windows $(GOBUILD) -o $(BINDIR)/$(NAME)-$@.exe
 
-releases: linux-amd64 linux-arm64 freebsd-amd64 freebsd-arm64 darwin-amd64 darwin-arm64 win64 win32
+releases: linux-amd64 linux-arm64 freebsd-amd64 freebsd-arm64 darwin-amd64 darwin-arm64 windows-amd64 windows-386
 	chmod +x $(BINDIR)/$(NAME)-*
-	tar czf $(BINDIR)/$(NAME)-linux-amd64.tar.gz -C $(BINDIR) $(NAME)-linux-amd64
-	tar czf $(BINDIR)/$(NAME)-linux-arm64.tar.gz -C $(BINDIR) $(NAME)-linux-arm64
-	tar czf $(BINDIR)/$(NAME)-freebsd-amd64.tar.gz -C $(BINDIR) $(NAME)-freebsd-amd64
-	tar czf $(BINDIR)/$(NAME)-freebsd-arm64.tar.gz -C $(BINDIR) $(NAME)-freebsd-arm64
-	tar czf $(BINDIR)/$(NAME)-darwin-amd64.tar.gz -C $(BINDIR) $(NAME)-darwin-amd64
-	tar czf $(BINDIR)/$(NAME)-darwin-arm64.tar.gz -C $(BINDIR) $(NAME)-darwin-arm64
-	rm $(BINDIR)/*-amd64
-	rm $(BINDIR)/*-arm64
-	zip -m -j $(BINDIR)/$(NAME)-win32.zip $(BINDIR)/$(NAME)-win32.exe
-	zip -m -j $(BINDIR)/$(NAME)-win64.zip $(BINDIR)/$(NAME)-win64.exe
+	mkdir -p $(BINDIR)/pkg
+
+	for target in linux-amd64 linux-arm64 freebsd-amd64 freebsd-arm64 darwin-amd64 darwin-arm64; do \
+		rm -rf $(BINDIR)/pkg/$$target; \
+		mkdir -p $(BINDIR)/pkg/$$target; \
+		cp $(BINDIR)/$(NAME)-$$target $(BINDIR)/pkg/$$target/$(NAME); \
+		tar czf $(BINDIR)/$(NAME)-$$target.tar.gz -C $(BINDIR)/pkg/$$target $(NAME); \
+	done
+	for target in windows-amd64 windows-386; do \
+		rm -rf $(BINDIR)/pkg/$$target; \
+		mkdir -p $(BINDIR)/pkg/$$target; \
+		cp $(BINDIR)/$(NAME)-$$target.exe $(BINDIR)/pkg/$$target/$(NAME).exe; \
+		(cd $(BINDIR)/pkg/$$target && zip -q -r ../../$(NAME)-$$target.zip $(NAME).exe); \
+	done
+	for target in linux-amd64 linux-arm64 freebsd-amd64 freebsd-arm64 darwin-amd64 darwin-arm64; do \
+		rm -f $(BINDIR)/$(NAME)-$$target; \
+	done
+	for target in windows-amd64 windows-386; do \
+		rm -f $(BINDIR)/$(NAME)-$$target.exe; \
+	done
+
+	rm -rf $(BINDIR)/pkg
+
+test:
+	go test ./...
 
 clean:
-	rm $(BINDIR)/*
-
-# Remove trailing {} from the release upload url
-GITHUB_UPLOAD_URL=$(shell echo $${GITHUB_RELEASE_UPLOAD_URL%\{*})
-
-upload: releases
-	curl -H "Authorization: token $(GITHUB_TOKEN)" -H "Content-Type: application/gzip" --data-binary @$(BINDIR)/$(NAME)-linux-amd64.tar.gz "$(GITHUB_UPLOAD_URL)?name=$(NAME)-linux-amd64.tar.gz"
-	curl -H "Authorization: token $(GITHUB_TOKEN)" -H "Content-Type: application/gzip" --data-binary @$(BINDIR)/$(NAME)-linux-arm64.tar.gz "$(GITHUB_UPLOAD_URL)?name=$(NAME)-linux-arm64.tar.gz"
-	curl -H "Authorization: token $(GITHUB_TOKEN)" -H "Content-Type: application/gzip" --data-binary @$(BINDIR)/$(NAME)-freebsd-amd64.tar.gz "$(GITHUB_UPLOAD_URL)?name=$(NAME)-freebsd-amd64.tar.gz"
-	curl -H "Authorization: token $(GITHUB_TOKEN)" -H "Content-Type: application/gzip" --data-binary @$(BINDIR)/$(NAME)-freebsd-arm64.tar.gz "$(GITHUB_UPLOAD_URL)?name=$(NAME)-freebsd-arm64.tar.gz"
-	curl -H "Authorization: token $(GITHUB_TOKEN)" -H "Content-Type: application/gzip" --data-binary @$(BINDIR)/$(NAME)-darwin-amd64.tar.gz "$(GITHUB_UPLOAD_URL)?name=$(NAME)-darwin-amd64.tar.gz"
-	curl -H "Authorization: token $(GITHUB_TOKEN)" -H "Content-Type: application/gzip" --data-binary @$(BINDIR)/$(NAME)-darwin-arm64.tar.gz "$(GITHUB_UPLOAD_URL)?name=$(NAME)-darwin-arm64.tar.gz"
-	curl -H "Authorization: token $(GITHUB_TOKEN)" -H "Content-Type: application/zip" --data-binary @$(BINDIR)/$(NAME)-win64.zip "$(GITHUB_UPLOAD_URL)?name=$(NAME)-win64.zip"
-	curl -H "Authorization: token $(GITHUB_TOKEN)" -H "Content-Type: application/zip" --data-binary @$(BINDIR)/$(NAME)-win32.zip "$(GITHUB_UPLOAD_URL)?name=$(NAME)-win32.zip"
+	rm -rf $(BINDIR)
