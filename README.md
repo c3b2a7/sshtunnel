@@ -21,13 +21,13 @@ runs one or more tunnels from a JSON config file.
 Install with the release script:
 
 ```shell
-curl https://raw.githubusercontent.com/c3b2a7/sshtunnel/master/scripts/get-sshtunnel.sh | sh
+curl -sSfL https://get.lolico.me/sshtunnel | sh
 ```
 
 Show installer options:
 
 ```shell
-curl https://raw.githubusercontent.com/c3b2a7/sshtunnel/master/scripts/get-sshtunnel.sh | sh -s -- -h
+curl -sSfL https://get.lolico.me/sshtunnel | sh -s -- -h
 ```
 
 Install from source:
@@ -36,8 +36,7 @@ Install from source:
 go install github.com/c3b2a7/sshtunnel@latest
 ```
 
-Prebuilt archives are available on the
-[releases page](https://github.com/c3b2a7/sshtunnel/releases).
+Prebuilt archives are available on the [releases page](https://github.com/c3b2a7/sshtunnel/releases).
 
 ## Quick Start
 
