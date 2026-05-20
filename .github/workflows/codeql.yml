@@ -1,0 +1,17 @@
+name: CodeQL
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    uses: c3b2a7/.github/.github/workflows/codeql-go.yaml@main
+    with:
+      entrypoint: "."
