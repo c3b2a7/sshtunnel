@@ -51,3 +51,16 @@ test:
 
 clean:
 	rm -rf $(BINDIR)
+
+changelog:
+	@if test -n "$$(git status --porcelain)"; then \
+		echo "working tree is not clean"; \
+		git status --short; \
+		exit 1; \
+	fi
+	@set -e; \
+	version="$$(git-cliff --bumped-version)"; \
+	echo "Generating CHANGELOG.md for $$version"; \
+	git-cliff --tag "$$version" -o CHANGELOG.md; \
+	git add CHANGELOG.md; \
+	git commit -m "chore(release): prepare for $$version"
