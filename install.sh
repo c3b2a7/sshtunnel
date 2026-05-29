@@ -180,6 +180,9 @@ esac
 # Get latest version if none was specified
 if test -z "$version"; then
   version="$(latest_tag "$latest_url")"
+  if test -z "$version"; then
+    err "Unable to get latest tag"
+  fi
 fi
 
 if [ "$ask" = "y" ] && [ ! -t 0 ]; then
